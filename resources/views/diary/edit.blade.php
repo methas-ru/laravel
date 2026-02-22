@@ -1,0 +1,170 @@
+ <x-app-layout>
+     <x-slot name="header">
+         <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
+             {{ __('Edit Diary Entry') }}
+         </h2>
+     </x-slot>
+
+     <div class="py-6">
+         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+             <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
+                 <div class="p-6 text-gray-900 dark:text-gray-100 text-center">
+                     <!-- Display user greeting -->
+                     <h1 class="text-2xl font-bold mb-4">{{ __('Hello, ') . Auth::user()->name . '!' }}</h1>
+                     <p class="mt-4"><b>{{ __("Update Your Diary Entry") }}</b></p>
+                 </div>
+             </div>
+         </div>
+     </div>
+
+     <div class="py-6">
+         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+             <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
+                 <div class="p-6 text-gray-900 dark:text-gray-100">
+                     <!-- Form to edit the diary entry -->
+                     <form method="POST" action="{{ route('diary.update', $diaryEntry) }}">
+                         @csrf
+                         @method('PUT') <!-- Include the PUT method for updates -->
+
+                         <div class="mb-4">
+                             <label for="date" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Date</label>
+                             <input type="date" id="date" name="date" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm dark:bg-gray-700 dark:text-gray-100" value="{{ old('date', $diaryEntry->date->format('Y-m-d')) }}" required>
+                             @error('date')
+                                 <div class="text-red-500 text-sm">{{ $message }}</div> <!-- Displaying the error message -->
+                             @enderror
+                         </div>
+
+                         <div class="mb-4">
+                             <label for="content" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Content</label>
+                             <textarea id="content" name="content" rows="5" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm dark:bg-gray-700 dark:text-gray-100" required>{{ old('content', $diaryEntry->content) }}</textarea>
+                             @error('content')
+                                 <div class="text-red-500 text-sm">{{ $message }}</div> <!-- Displaying the error message -->
+                             @enderror
+                         </div>
+
+                         {{-- Emotion --}}
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Select Emotions</label>
+
+                            <!-- Grid layout for emotions -->
+                            <div class="grid grid-cols-1 gap-4">
+                                @foreach ($emotions as $emotion)
+                                    <div class="flex items-center mb-4">
+                                        <!-- Checkbox and label container -->
+                                        <input type="checkbox" id="emotion_{{ $emotion->id }}" name="emotions[]" value="{{ $emotion->id }}" class="h-5 w-5 text-indigo-600 border-gray-300 rounded dark:bg-gray-700 dark:border-gray-600 dark:focus:ring-indigo-600"
+                                            {{ in_array($emotion->id, old('emotions', $diaryEntry->emotions->pluck('id')->toArray())) ? 'checked' : '' }}
+                                            onchange="toggleIntensityInput({{ $emotion->id }})">
+                                        <label for="emotion_{{ $emotion->id }}" class="ml-2 text-sm font-medium text-gray-700 dark:text-gray-300">{{ $emotion->name }}</label>
+
+                                        <!-- Intensity input container, initially hidden -->
+                                        <div class="ml-4 {{ in_array($emotion->id, old('emotions', $diaryEntry->emotions->pluck('id')->toArray())) ? '' : 'hidden' }}" id="intensity_container_{{ $emotion->id }}">
+                                            <input type="number" name="intensity[{{ $emotion->id }}]" class="w-full border-gray-300 rounded-md shadow-sm dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600 focus:ring-indigo-500 focus:border-indigo-500" placeholder="Intensity" min="1" max="10"
+                                                value="{{ old('intensity.' . $emotion->id, $diaryEntry->emotions->find($emotion->id)->pivot->intensity ?? '') }}">
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+
+                            @error('emotions')
+                                <div class="text-red-500 text-sm mt-2">{{ $message }}</div>
+                            @enderror
+                        </div>
+                        {{-- Category --}}
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                Select Categories
+                            </label>
+
+                            <!-- Grid layout for categories -->
+                            <div class="grid grid-cols-1 gap-4">
+                                @foreach ($categories as $category)
+                                    <div class="flex items-center">
+                                        <input type="checkbox"
+                                            id="category_{{ $category->id }}"
+                                            name="categories[]"
+                                            value="{{ $category->id }}"
+                                            class="h-5 w-5 text-indigo-600 border-gray-300 rounded 
+                                                dark:bg-gray-700 dark:border-gray-600 
+                                                dark:focus:ring-indigo-600">
+
+                                        <label for="category_{{ $category->id }}"
+                                            class="ml-3 text-sm font-medium text-gray-700 dark:text-gray-300">
+                                            {{ $category->name }}
+                                        </label>
+                                    </div>
+                                @endforeach
+                            </div>
+
+                            @error('categories')
+                                <div class="text-red-500 text-sm mt-2">{{ $message }}</div>
+                            @enderror
+                        </div>
+                        <!-- Tags -->
+                        <div class="mb-4" x-data="{
+                            selectedTags: @json(old('tags', isset($diaryEntry) ? $diaryEntry->tags->pluck('id') : [])).map(id => parseInt(id)),
+                            toggleTag(id) {
+                                if (this.selectedTags.includes(id)) {
+                                    this.selectedTags = this.selectedTags.filter(t => t !== id);
+                                } else {
+                                    this.selectedTags.push(id);
+                                }
+                            }
+                        }">
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Tags</label>
+
+                            <div class="flex flex-wrap gap-2">
+                                @foreach ($tags as $tag)
+                                    <button type="button"
+                                        @click="toggleTag({{ $tag->id }})"
+                                        :class="selectedTags.includes({{ $tag->id }})
+                                            ? 'bg-green-600 text-white shadow-md'
+                                            : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'"
+                                        class="px-4 py-2 rounded-full text-sm font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                                        {{ $tag->name }}
+                                    </button>
+                                @endforeach
+                            </div>
+
+                            <!-- Hidden select for form submission -->
+                            <select name="tags[]" x-model="selectedTags" multiple class="hidden">
+                                @foreach ($tags as $tag)
+                                    <option value="{{ $tag->id }}">{{ $tag->name }}</option>
+                                @endforeach
+                            </select>
+
+                            @error('tags')
+                                <div class="text-red-500 text-sm mt-2">{{ $message }}</div>
+                            @enderror
+                        </div>
+
+                         <x-primary-button>{{ __('Update Entry') }}</x-primary-button>
+                     </form>
+                 </div>
+             </div>
+         </div>
+     </div>
+
+    <center>
+        <!-- Back to Previous Page Button with Button Component -->
+        <x-secondary-button type="button" onclick="window.location.href='{{ url()->previous() }}'">
+            {{ __('Back to Previous') }}
+        </x-secondary-button>
+    </center>
+
+    <script>
+        function toggleIntensityInput(emotionId) {
+            var checkbox = document.getElementById('emotion_' + emotionId);
+            var intensityContainer = document.getElementById('intensity_container_' + emotionId);
+            var intensityInput = intensityContainer.querySelector('input');
+
+            if (checkbox.checked) {
+                intensityContainer.classList.remove('hidden');
+                intensityInput.setAttribute('required', 'required');
+            } else {
+                intensityContainer.classList.add('hidden');
+                intensityInput.removeAttribute('required');
+                intensityInput.value = ''; // Clear intensity input if unchecked
+            }
+        }
+    </script>
+ </x-app-layout>
