@@ -62,4 +62,10 @@ class User extends Authenticatable
     {
         return $this->hasMany(SocialMedia::class);
     }
+
+    public function reminders()
+    {
+        return $this->hasMany(Reminder::class);
+    }
+
 }

@@ -6,6 +6,7 @@ use App\Http\Controllers\PostController;
 use App\Http\Controllers\UserController; // add this
 use App\Http\Controllers\DiaryEntryController;
 use App\Http\Controllers\SocialMediaController;
+use App\Http\Controllers\ReminderController;
 
 Route::resource('posts', PostController::class);
 
@@ -31,6 +32,7 @@ Route::middleware('auth')->group(function () {
 
     Route::resource('diary', DiaryEntryController::class); //add this line
     Route::resource('social', SocialMediaController::class); //add this line
+    Route::resource('reminders', ReminderController::class);
 });
 
 require __DIR__.'/auth.php';

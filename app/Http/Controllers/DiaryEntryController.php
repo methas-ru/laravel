@@ -9,6 +9,7 @@ use App\Models\DiaryEntry;
 use App\Models\Emotion;
 use App\Models\Category;
 use App\Models\Tag;
+use Illuminate\Support\Facades\DB;
 
 class DiaryEntryController extends Controller
 {
@@ -18,11 +19,26 @@ class DiaryEntryController extends Controller
 
     public function index()
     {
+        // Get all diary entries for the logged-in user with eager loading of related emotions, categories, and tags
         $diaryEntries = Auth::user()->diaryEntries()
-        ->with('emotions', 'categories', 'tags')
-        ->orderBy('date', 'desc')
-        ->get();
-        return view('diary.index', compact('diaryEntries'));
+            ->with('emotions', 'categories', 'tags')
+            ->orderBy('date', 'desc')
+            ->get();
+
+        // Get the logged-in user ID. Stores the current user’s ID in $userId for raw query builder usage.
+        $userId = Auth::id();
+
+        // Count how many diaries are related to each emotion
+        $emotionCounts = DB::table('diary_entry_emotions as dee')
+            ->join('diary_entries as de', 'de.id', '=', 'dee.diary_entry_id')
+            ->where('de.user_id', $userId)
+            ->select('dee.emotion_id', DB::raw('COUNT(*) as total'))
+            ->groupBy('dee.emotion_id')
+            ->get();
+        // Convert the collection to an associative array: [emotion_id => total]
+        $summary = $emotionCounts->pluck('total', 'emotion_id')->toArray();
+
+        return view('diary.index', compact('diaryEntries', 'userId', 'summary'));
     }
 
     /**

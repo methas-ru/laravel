@@ -16,4 +16,8 @@ class Tag extends Model
     {
         return $this->morphedByMany(DiaryEntry::class, 'taggable')->withTimestamps();
     }
+    public function reminders()
+    {
+        return $this->morphedByMany(Reminder::class, 'taggable')->withTimestamps();
+    }
 }
